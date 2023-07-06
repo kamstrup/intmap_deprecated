@@ -30,7 +30,8 @@ type Map64[K Val64, V any] struct {
 	hasZeroKey bool // do we have 'zero' key in the map?
 }
 
-// New64 ...
+// New64 creates a new map with keys being some 64 integer subtype.
+// The map can store up to the given capacity before reallocation and rehashing occurs.
 func New64[K, V Val64](capacity int) *Map64[K, V] {
 	return &Map64[K, V]{
 		data: make([]Pair64[K, V], arraySize(capacity, fillFactor64)),
@@ -131,11 +132,7 @@ func (m *Map64[K, V]) rehash() {
 		m.size = 0
 	}
 
-	for _, p := range oldData {
-		if p.K != K(0) {
-			m.Put(p.K, p.V)
-		}
-	}
+	forEach64(oldData, m.Put)
 }
 
 // Len returns the number of elements in the map.
@@ -153,4 +150,12 @@ func (m *Map64[K, V]) startIndex(key K) int {
 
 func (m *Map64[K, V]) nextIndex(idx int) int {
 	return (idx + 1) & (len(m.data) - 1)
+}
+
+func forEach64[K Val64, V any](pairs []Pair64[K, V], f func(k K, v V)) {
+	for _, p := range pairs {
+		if p.K != K(0) {
+			f(p.K, p.V)
+		}
+	}
 }
