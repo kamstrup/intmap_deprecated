@@ -4,7 +4,7 @@ import (
 	"math"
 )
 
-// IntKey is a type constraint for values that can be used as keys in Map64
+// IntKey is a type constraint for values that can be used as keys in Map
 type IntKey interface {
 	~int | ~uint | ~int64 | ~uint64 | ~int32 | ~uint32 | ~int16 | ~uint16 | ~int8 | ~uint8 | ~uintptr
 }
@@ -21,8 +21,8 @@ func phiMix64(x int) int {
 	return h ^ (h >> 16)
 }
 
-// Map64 is a hashmap where the keys are some any integer type.
-type Map64[K IntKey, V any] struct {
+// Map is a hashmap where the keys are some any integer type.
+type Map[K IntKey, V any] struct {
 	data []pair[K, V] // key-value pairs
 	size int
 
@@ -30,16 +30,16 @@ type Map64[K IntKey, V any] struct {
 	hasZeroKey bool // do we have 'zero' key in the map?
 }
 
-// New64 creates a new map with keys being any integer subtype.
+// New creates a new map with keys being any integer subtype.
 // The map can store up to the given capacity before reallocation and rehashing occurs.
-func New64[K IntKey, V any](capacity int) *Map64[K, V] {
-	return &Map64[K, V]{
+func New[K IntKey, V any](capacity int) *Map[K, V] {
+	return &Map[K, V]{
 		data: make([]pair[K, V], arraySize(capacity, fillFactor64)),
 	}
 }
 
 // Get returns the value if the key is found.
-func (m *Map64[K, V]) Get(key K) (V, bool) {
+func (m *Map[K, V]) Get(key K) (V, bool) {
 	if key == K(0) {
 		if m.hasZeroKey {
 			return m.zeroVal, true
@@ -74,7 +74,7 @@ func (m *Map64[K, V]) Get(key K) (V, bool) {
 }
 
 // Put adds or updates key with value val.
-func (m *Map64[K, V]) Put(key K, val V) {
+func (m *Map[K, V]) Put(key K, val V) {
 	if key == K(0) {
 		if !m.hasZeroKey {
 			m.size++
@@ -122,7 +122,7 @@ func (m *Map64[K, V]) Put(key K, val V) {
 	}
 }
 
-func (m *Map64[K, V]) ForEach(f func(K, V)) {
+func (m *Map[K, V]) ForEach(f func(K, V)) {
 	if m.hasZeroKey {
 		f(K(0), m.zeroVal)
 	}
@@ -130,7 +130,7 @@ func (m *Map64[K, V]) ForEach(f func(K, V)) {
 }
 
 // Clear removes all items from the map, but keeps the internal buffers for reuse.
-func (m *Map64[K, V]) Clear() {
+func (m *Map[K, V]) Clear() {
 	var zero V
 	m.hasZeroKey = false
 	m.zeroVal = zero
@@ -143,7 +143,7 @@ func (m *Map64[K, V]) Clear() {
 	m.size = 0
 }
 
-func (m *Map64[K, V]) rehash() {
+func (m *Map[K, V]) rehash() {
 	oldData := m.data
 	m.data = make([]pair[K, V], 2*len(m.data))
 
@@ -158,19 +158,19 @@ func (m *Map64[K, V]) rehash() {
 }
 
 // Len returns the number of elements in the map.
-func (m *Map64[K, V]) Len() int {
+func (m *Map[K, V]) Len() int {
 	return m.size
 }
 
-func (m *Map64[K, V]) sizeThreshold() int {
+func (m *Map[K, V]) sizeThreshold() int {
 	return int(math.Floor(float64(len(m.data)) * fillFactor64))
 }
 
-func (m *Map64[K, V]) startIndex(key K) int {
+func (m *Map[K, V]) startIndex(key K) int {
 	return phiMix64(int(key)) & (len(m.data) - 1)
 }
 
-func (m *Map64[K, V]) nextIndex(idx int) int {
+func (m *Map[K, V]) nextIndex(idx int) int {
 	return (idx + 1) & (len(m.data) - 1)
 }
 
@@ -183,7 +183,7 @@ func forEach64[K IntKey, V any](pairs []pair[K, V], f func(k K, v V)) {
 }
 
 // Del deletes a key and its value, returning true iff the key was found
-func (m *Map64[K, V]) Del(key K) bool {
+func (m *Map[K, V]) Del(key K) bool {
 	if key == K(0) {
 		if m.hasZeroKey {
 			m.hasZeroKey = false
@@ -223,7 +223,7 @@ func (m *Map64[K, V]) Del(key K) bool {
 	}
 }
 
-func (m *Map64[K, V]) shiftKeys(idx int) int {
+func (m *Map[K, V]) shiftKeys(idx int) int {
 	// Shift entries with the same hash.
 	// We need to do this on deletion to ensure we don't have zeroes in the hash chain
 	for {
@@ -251,4 +251,31 @@ func (m *Map64[K, V]) shiftKeys(idx int) int {
 		}
 		m.data[lastIdx] = p
 	}
+}
+
+func nextPowerOf2(x uint32) uint32 {
+	if x == math.MaxUint32 {
+		return x
+	}
+
+	if x == 0 {
+		return 1
+	}
+
+	x--
+	x |= x >> 1
+	x |= x >> 2
+	x |= x >> 4
+	x |= x >> 8
+	x |= x >> 16
+
+	return x + 1
+}
+
+func arraySize(exp int, fill float64) int {
+	s := nextPowerOf2(uint32(math.Ceil(float64(exp) / fill)))
+	if s < 2 {
+		s = 2
+	}
+	return int(s)
 }

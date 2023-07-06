@@ -1,11 +1,16 @@
 package intintmap
 
+//
+// This file contains the old intintmap_test.go code from https://github.com/brentp/intintmap,
+// ported verbatim to new Map code with parametrized types
+//
+
 import (
 	"testing"
 )
 
 func TestMapSimple(t *testing.T) {
-	m := New(10, 0.99)
+	m := New[int64, int64](10)
 	var i int64
 	var v int64
 	var ok bool
@@ -25,8 +30,8 @@ func TestMapSimple(t *testing.T) {
 		}
 	}
 
-	if m.Size() != int(20000/2) {
-		t.Errorf("size (%d) is not right, should be %d", m.Size(), int(20000/2))
+	if m.Len() != int(20000/2) {
+		t.Errorf("size (%d) is not right, should be %d", m.Len(), int(20000/2))
 	}
 
 	// --------------------------------------------------------------------
@@ -38,9 +43,10 @@ func TestMapSimple(t *testing.T) {
 	}
 	n := len(m0)
 
-	for k := range m.Keys() {
+	m.ForEach(func(k int64, v int64) {
 		m0[k] = -k
-	}
+	})
+
 	if n != len(m0) {
 		t.Errorf("get unexpected more keys")
 	}
@@ -60,12 +66,13 @@ func TestMapSimple(t *testing.T) {
 	}
 	n = len(m0)
 
-	for kv := range m.Items() {
-		m0[kv[0]] = -kv[1]
-		if kv[0] != kv[1] {
+	m.ForEach(func(k int64, v int64) {
+		m0[k] = -v
+		if k != v {
 			t.Errorf("didn't get expected key-value pair")
 		}
-	}
+	})
+
 	if n != len(m0) {
 		t.Errorf("get unexpected more keys")
 	}
@@ -109,7 +116,7 @@ func TestMapSimple(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	m := New(10, 0.6)
+	m := New[int64, int64](10)
 	var ok bool
 	var v int64
 
@@ -151,18 +158,7 @@ func TestMap(t *testing.T) {
 const MAX = 999999999
 const STEP = 9534
 
-func fillIntIntMap(m *Map) {
-	var j int64
-	for j = 0; j < MAX; j += STEP {
-		m.Put(j, -j)
-		for k := j; k < j+16; k++ {
-			m.Put(k, -k)
-		}
-
-	}
-}
-
-func fillMap64(m *Map64[int64, int64]) {
+func fillMap64(m *Map[int64, int64]) {
 	var j int64
 	for j = 0; j < MAX; j += STEP {
 		m.Put(j, -j)
@@ -185,15 +181,8 @@ func fillStdMap(m map[int64]int64) {
 
 func BenchmarkMap64Fill(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		m := New64[int64, int64](2048)
+		m := New[int64, int64](2048)
 		fillMap64(m)
-	}
-}
-
-func BenchmarkIntIntMapFill(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		m := New(2048, 0.60)
-		fillIntIntMap(m)
 	}
 }
 
@@ -207,26 +196,8 @@ func BenchmarkStdMapFill(b *testing.B) {
 func BenchmarkMap64Get10PercentHitRate(b *testing.B) {
 	var j, k, v, sum int64
 	var ok bool
-	m := New64[int64, int64](2048)
+	m := New[int64, int64](2048)
 	fillMap64(m)
-	for i := 0; i < b.N; i++ {
-		sum = int64(0)
-		for j = 0; j < MAX; j += STEP {
-			for k = j; k < 10; k++ {
-				if v, ok = m.Get(k); ok {
-					sum += v
-				}
-			}
-		}
-		// log.Println("int int sum:", sum)
-	}
-}
-
-func BenchmarkIntIntMapGet10PercentHitRate(b *testing.B) {
-	var j, k, v, sum int64
-	var ok bool
-	m := New(2048, 0.60)
-	fillIntIntMap(m)
 	for i := 0; i < b.N; i++ {
 		sum = int64(0)
 		for j = 0; j < MAX; j += STEP {
@@ -261,24 +232,8 @@ func BenchmarkStdMapGet10PercentHitRate(b *testing.B) {
 func BenchmarkMap64Get100PercentHitRate(b *testing.B) {
 	var j, v, sum int64
 	var ok bool
-	m := New64[int64, int64](2048)
+	m := New[int64, int64](2048)
 	fillMap64(m)
-	for i := 0; i < b.N; i++ {
-		sum = int64(0)
-		for j = 0; j < MAX; j += STEP {
-			if v, ok = m.Get(j); ok {
-				sum += v
-			}
-		}
-		// log.Println("int int sum:", sum)
-	}
-}
-
-func BenchmarkIntIntMapGet100PercentHitRate(b *testing.B) {
-	var j, v, sum int64
-	var ok bool
-	m := New(2048, 0.60)
-	fillIntIntMap(m)
 	for i := 0; i < b.N; i++ {
 		sum = int64(0)
 		for j = 0; j < MAX; j += STEP {
