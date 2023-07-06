@@ -1,3 +1,3 @@
-module intintmap
+module intmap
 
 go 1.18

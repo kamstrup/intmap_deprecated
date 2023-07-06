@@ -1,4 +1,4 @@
-package intintmap
+package intmap
 
 //
 // This file contains the old intintmap_test.go code from https://github.com/brentp/intintmap,
