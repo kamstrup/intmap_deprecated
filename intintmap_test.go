@@ -162,6 +162,17 @@ func fillIntIntMap(m *Map) {
 	}
 }
 
+func fillMap64(m *Map64[int64, int64]) {
+	var j int64
+	for j = 0; j < MAX; j += STEP {
+		m.Put(j, -j)
+		for k := j; k < j+16; k++ {
+			m.Put(k, -k)
+		}
+
+	}
+}
+
 func fillStdMap(m map[int64]int64) {
 	var j int64
 	for j = 0; j < MAX; j += STEP {
@@ -169,6 +180,13 @@ func fillStdMap(m map[int64]int64) {
 		for k := j; k < j+16; k++ {
 			m[k] = -k
 		}
+	}
+}
+
+func BenchmarkMap64Fill(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		m := New64[int64, int64](2048)
+		fillMap64(m)
 	}
 }
 
@@ -186,6 +204,24 @@ func BenchmarkStdMapFill(b *testing.B) {
 	}
 }
 
+func BenchmarkMap64Get10PercentHitRate(b *testing.B) {
+	var j, k, v, sum int64
+	var ok bool
+	m := New64[int64, int64](2048)
+	fillMap64(m)
+	for i := 0; i < b.N; i++ {
+		sum = int64(0)
+		for j = 0; j < MAX; j += STEP {
+			for k = j; k < 10; k++ {
+				if v, ok = m.Get(k); ok {
+					sum += v
+				}
+			}
+		}
+		// log.Println("int int sum:", sum)
+	}
+}
+
 func BenchmarkIntIntMapGet10PercentHitRate(b *testing.B) {
 	var j, k, v, sum int64
 	var ok bool
@@ -200,7 +236,7 @@ func BenchmarkIntIntMapGet10PercentHitRate(b *testing.B) {
 				}
 			}
 		}
-		//log.Println("int int sum:", sum)
+		// log.Println("int int sum:", sum)
 	}
 }
 
@@ -218,7 +254,23 @@ func BenchmarkStdMapGet10PercentHitRate(b *testing.B) {
 				}
 			}
 		}
-		//log.Println("map sum:", sum)
+		// log.Println("map sum:", sum)
+	}
+}
+
+func BenchmarkMap64Get100PercentHitRate(b *testing.B) {
+	var j, v, sum int64
+	var ok bool
+	m := New64[int64, int64](2048)
+	fillMap64(m)
+	for i := 0; i < b.N; i++ {
+		sum = int64(0)
+		for j = 0; j < MAX; j += STEP {
+			if v, ok = m.Get(j); ok {
+				sum += v
+			}
+		}
+		// log.Println("int int sum:", sum)
 	}
 }
 
@@ -234,7 +286,7 @@ func BenchmarkIntIntMapGet100PercentHitRate(b *testing.B) {
 				sum += v
 			}
 		}
-		//log.Println("int int sum:", sum)
+		// log.Println("int int sum:", sum)
 	}
 }
 
@@ -250,51 +302,6 @@ func BenchmarkStdMapGet100PercentHitRate(b *testing.B) {
 				sum += v
 			}
 		}
-		//log.Println("map sum:", sum)
+		// log.Println("map sum:", sum)
 	}
-}
-
-func BenchmarkStdMapRange(b *testing.B) {
-	var j, v, sum int64
-	m := make(map[int64]int64, 2048)
-	fillStdMap(m)
-	for i := 0; i < b.N; i++ {
-		sum = int64(0)
-		for j, v = range m {
-			sum += j
-			sum += v
-		}
-		//log.Println("map sum:", sum)
-	}
-}
-
-func BenchmarkIntIntMapItems(b *testing.B) {
-	var j, v, sum int64
-	var it [2]int64
-	m := New(2048, 0.60)
-	fillIntIntMap(m)
-	for i := 0; i < b.N; i++ {
-		sum = int64(0)
-		for it = range m.Items() {
-			j, v = it[0], it[1]
-			sum += j
-			sum += v
-		}
-		//log.Println("int int sum:", sum)
-	}
-}
-
-func BenchmarkIntIntMapEach(b *testing.B) {
-	var sum int64
-	m := New(2048, 0.60)
-	fillIntIntMap(m)
-	for i := 0; i < b.N; i++ {
-		//sum = int64(0)
-		m.Each(func(k, v int64) {
-			sum += k
-			sum += v
-		})
-
-	}
-	//log.Println("int int sum:", sum)
 }

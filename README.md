@@ -14,14 +14,18 @@ http://java-performance.info/implementing-world-fastest-java-int-to-int-hash-map
 
 It interleaves keys and values in the same underlying array to improve locality.
 
-It is 2-5X faster than the builtin map:
+It is up to 3X faster than the builtin map:
 ```
-BenchmarkIntIntMapFill                 	      10	 158436598 ns/op
-BenchmarkStdMapFill                    	       5	 312135474 ns/op
-BenchmarkIntIntMapGet10PercentHitRate  	    5000	    243108 ns/op
-BenchmarkStdMapGet10PercentHitRate     	    5000	    268927 ns/op
-BenchmarkIntIntMapGet100PercentHitRate 	     500	   2249349 ns/op
-BenchmarkStdMapGet100PercentHitRate    	     100	  10258929 ns/op
+name                             time/op
+Map64Fill-8                       219ms ±21%
+IntIntMapFill-8                   204ms ±13%
+StdMapFill-8                      354ms ± 5%
+Map64Get10PercentHitRate-8        158µs ±38%
+IntIntMapGet10PercentHitRate-8    190µs ±63%
+StdMapGet10PercentHitRate-8       178µs ±32%
+Map64Get100PercentHitRate-8      4.70ms ± 5%
+IntIntMapGet100PercentHitRate-8  5.04ms ±10%
+StdMapGet100PercentHitRate-8     16.8ms ±31%
 ```
 
 ## Usage
