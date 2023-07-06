@@ -59,6 +59,7 @@ func (m *Map64[K, V]) Get(key K) (V, bool) {
 		return pair.V, true
 	}
 
+	// hash collision, seek next hash match, bailing on first empty
 	for {
 		idx = m.nextIndex(idx)
 		pair = m.data[idx]
@@ -119,6 +120,27 @@ func (m *Map64[K, V]) Put(key K, val V) {
 			return
 		}
 	}
+}
+
+func (m *Map64[K, V]) ForEach(f func(K, V)) {
+	if m.hasZeroKey {
+		f(K(0), m.zeroVal)
+	}
+	forEach64(m.data, f)
+}
+
+// Clear removes all items from the map, but keeps the internal buffers for reuse.
+func (m *Map64[K, V]) Clear() {
+	var zero V
+	m.hasZeroKey = false
+	m.zeroVal = zero
+
+	// compiles down to runtime.memclr()
+	for i := range m.data {
+		m.data[i] = Pair64[K, V]{}
+	}
+
+	m.size = 0
 }
 
 func (m *Map64[K, V]) rehash() {
