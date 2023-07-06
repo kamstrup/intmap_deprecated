@@ -13,7 +13,7 @@ The values can be of any type.
 It is a full port of https://github.com/brentp/intintmap to use type parameters (aka generics).
 
 It interleaves keys and values in the same underlying array to improve locality.
-This is also known as open addressing with linear porbing.
+This is also known as open addressing with linear probing.
 
 It is up to 3X faster than the builtin map:
 ```
