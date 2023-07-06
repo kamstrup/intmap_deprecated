@@ -4,12 +4,12 @@ import (
 	"math"
 )
 
-// Val64 is a type constraint for values that are guaranteed to be 64 bits wide.
-type Val64 interface {
-	~int64 | ~uint64
+// IntKey is a type constraint for values that can be used as keys in Map64
+type IntKey interface {
+	~int | ~uint | ~int64 | ~uint64 | ~int32 | ~uint32 | ~int16 | ~uint16 | ~int8 | ~uint8 | ~uintptr
 }
 
-type Pair64[K Val64, V any] struct {
+type pair[K IntKey, V any] struct {
 	K K
 	V V
 }
@@ -21,20 +21,20 @@ func phiMix64(x int) int {
 	return h ^ (h >> 16)
 }
 
-// Map64 is a map-like data-structure for 64-bit types
-type Map64[K Val64, V any] struct {
-	data []Pair64[K, V] // key-value pairs
+// Map64 is a hashmap where the keys are some any integer type.
+type Map64[K IntKey, V any] struct {
+	data []pair[K, V] // key-value pairs
 	size int
 
 	zeroVal    V    // value of 'zero' key
 	hasZeroKey bool // do we have 'zero' key in the map?
 }
 
-// New64 creates a new map with keys being some 64 integer subtype.
+// New64 creates a new map with keys being any integer subtype.
 // The map can store up to the given capacity before reallocation and rehashing occurs.
-func New64[K, V Val64](capacity int) *Map64[K, V] {
+func New64[K IntKey, V any](capacity int) *Map64[K, V] {
 	return &Map64[K, V]{
-		data: make([]Pair64[K, V], arraySize(capacity, fillFactor64)),
+		data: make([]pair[K, V], arraySize(capacity, fillFactor64)),
 	}
 }
 
@@ -49,26 +49,26 @@ func (m *Map64[K, V]) Get(key K) (V, bool) {
 	}
 
 	idx := m.startIndex(key)
-	pair := m.data[idx]
+	p := m.data[idx]
 
-	if pair.K == K(0) { // end of chain already
+	if p.K == K(0) { // end of chain already
 		var zero V
 		return zero, false
 	}
-	if pair.K == key { // we check zero prior to this call
-		return pair.V, true
+	if p.K == key { // we check zero prior to this call
+		return p.V, true
 	}
 
 	// hash collision, seek next hash match, bailing on first empty
 	for {
 		idx = m.nextIndex(idx)
-		pair = m.data[idx]
-		if pair.K == K(0) {
+		p = m.data[idx]
+		if p.K == K(0) {
 			var zero V
 			return zero, false
 		}
-		if pair.K == key {
-			return pair.V, true
+		if p.K == key {
+			return p.V, true
 		}
 	}
 }
@@ -85,38 +85,38 @@ func (m *Map64[K, V]) Put(key K, val V) {
 	}
 
 	idx := m.startIndex(key)
-	pair := &m.data[idx]
+	p := &m.data[idx]
 
-	if pair.K == K(0) { // end of chain already
-		pair.K = key
-		pair.V = val
+	if p.K == K(0) { // end of chain already
+		p.K = key
+		p.V = val
 		if m.size >= m.sizeThreshold() {
 			m.rehash()
 		} else {
 			m.size++
 		}
 		return
-	} else if pair.K == key { // overwrite existing value
-		pair.V = val
+	} else if p.K == key { // overwrite existing value
+		p.V = val
 		return
 	}
 
 	// hash collision, seek next empty or key match
 	for {
 		idx = m.nextIndex(idx)
-		pair = &m.data[idx]
+		p = &m.data[idx]
 
-		if pair.K == K(0) {
-			pair.K = key
-			pair.V = val
+		if p.K == K(0) {
+			p.K = key
+			p.V = val
 			if m.size >= m.sizeThreshold() {
 				m.rehash()
 			} else {
 				m.size++
 			}
 			return
-		} else if pair.K == key {
-			pair.V = val
+		} else if p.K == key {
+			p.V = val
 			return
 		}
 	}
@@ -137,7 +137,7 @@ func (m *Map64[K, V]) Clear() {
 
 	// compiles down to runtime.memclr()
 	for i := range m.data {
-		m.data[i] = Pair64[K, V]{}
+		m.data[i] = pair[K, V]{}
 	}
 
 	m.size = 0
@@ -145,7 +145,7 @@ func (m *Map64[K, V]) Clear() {
 
 func (m *Map64[K, V]) rehash() {
 	oldData := m.data
-	m.data = make([]Pair64[K, V], 2*len(m.data))
+	m.data = make([]pair[K, V], 2*len(m.data))
 
 	// reset size
 	if m.hasZeroKey {
@@ -174,7 +174,7 @@ func (m *Map64[K, V]) nextIndex(idx int) int {
 	return (idx + 1) & (len(m.data) - 1)
 }
 
-func forEach64[K Val64, V any](pairs []Pair64[K, V], f func(k K, v V)) {
+func forEach64[K IntKey, V any](pairs []pair[K, V], f func(k K, v V)) {
 	for _, p := range pairs {
 		if p.K != K(0) {
 			f(p.K, p.V)
