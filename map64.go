@@ -181,3 +181,74 @@ func forEach64[K IntKey, V any](pairs []pair[K, V], f func(k K, v V)) {
 		}
 	}
 }
+
+// Del deletes a key and its value, returning true iff the key was found
+func (m *Map64[K, V]) Del(key K) bool {
+	if key == K(0) {
+		if m.hasZeroKey {
+			m.hasZeroKey = false
+			m.size--
+			return true
+		}
+		return false
+	}
+
+	idx := m.startIndex(key)
+	p := m.data[idx]
+
+	if p.K == key {
+		// any keys that were pushed back needs to be shifted nack into the empty slot
+		// to avoid breaking the chain
+		m.shiftKeys(idx)
+		m.size--
+		return true
+	} else if p.K == K(0) { // end of chain already
+		return false
+	}
+
+	for {
+		idx = m.nextIndex(idx)
+		p = m.data[idx]
+
+		if p.K == key {
+			// any keys that were pushed back needs to be shifted nack into the empty slot
+			// to avoid breaking the chain
+			m.shiftKeys(idx)
+			m.size--
+			return true
+		} else if p.K == K(0) {
+			return false
+		}
+
+	}
+}
+
+func (m *Map64[K, V]) shiftKeys(idx int) int {
+	// Shift entries with the same hash.
+	// We need to do this on deletion to ensure we don't have zeroes in the hash chain
+	for {
+		var p pair[K, V]
+		lastIdx := idx
+		idx = m.nextIndex(idx)
+		for {
+			p = m.data[idx]
+			if p.K == K(0) {
+				m.data[lastIdx] = pair[K, V]{}
+				return lastIdx
+			}
+
+			slot := m.startIndex(p.K)
+			if lastIdx <= idx {
+				if lastIdx >= slot || slot > idx {
+					break
+				}
+			} else {
+				if lastIdx >= slot && slot > idx {
+					break
+				}
+			}
+			idx = m.nextIndex(idx)
+		}
+		m.data[lastIdx] = p
+	}
+}
