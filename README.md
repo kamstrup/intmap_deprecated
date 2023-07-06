@@ -1,18 +1,19 @@
-Fast int64 -> int64 hash in golang.
+Fast hashmap with integer keys for Golang
 
-[![GoDoc](https://godoc.org/github.com/brentp/intintmap?status.svg)](https://godoc.org/github.com/brentp/intintmap)
-[![Go Report Card](https://goreportcard.com/badge/github.com/brentp/intintmap)](https://goreportcard.com/report/github.com/brentp/intintmap)
+[![GoDoc](https://godoc.org/github.com/kamstrup/intmap?status.svg)](https://godoc.org/github.com/kamstrup/intmap)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kamstrup/intmap)](https://goreportcard.com/report/github.com/kamstrup/intmap)
 
-# intintmap
+# intmap
 
-    import "github.com/brentp/intintmap"
+    import "github.com/kamstrup/intmap"
 
-Package intintmap is a fast int64 key -> int64 value map.
+Package intmap is a fast hashmap implementation for Golang, specialized for maps with integer type keys.
+The values can be of any type.
 
-It is copied nearly verbatim from
-http://java-performance.info/implementing-world-fastest-java-int-to-int-hash-map/ .
+It is a full port of https://github.com/brentp/intintmap to use type parameters (aka generics).
 
 It interleaves keys and values in the same underlying array to improve locality.
+This is also known as open addressing with linear porbing.
 
 It is up to 3X faster than the builtin map:
 ```
@@ -31,7 +32,7 @@ StdMapGet100PercentHitRate-8     15.5ms ±32%
 ## Usage
 
 ```go
-m := intintmap.New(32768, 0.6)
+m := intmap.New[int64,int64](32768)
 m.Put(int64(1234), int64(-222))
 m.Put(int64(123), int64(33))
 
@@ -41,73 +42,11 @@ v, ok := m.Get(int64(333))
 m.Del(int64(222))
 m.Del(int64(333))
 
-fmt.Println(m.Size())
+fmt.Println(m.Len())
 
-for k := range m.Keys() {
-    fmt.Printf("key: %d\n", k)
-}
+m.ForEach(func(k int64, v int64) {
+    fmt.Printf("key: %d, value: %d\n", k, v)
+})
 
-for kv := range m.Items() {
-    fmt.Printf("key: %d, value: %d\n", kv[0], kv[1])
-}
+m.Clear() // all gone, but buffers kept
 ```
-
-#### type Map
-
-```go
-type Map struct {
-}
-```
-
-Map is a map-like data-structure for int64s
-
-#### func  New
-
-```go
-func New(size int, fillFactor float64) *Map
-```
-New returns a map initialized with n spaces and uses the stated fillFactor. The
-map will grow as needed.
-
-#### func (*Map) Get
-
-```go
-func (m *Map) Get(key int64) (int64, bool)
-```
-Get returns the value if the key is found.
-
-#### func (*Map) Put
-
-```go
-func (m *Map) Put(key int64, val int64)
-```
-Put adds or updates key with value val.
-
-#### func (*Map) Del
-
-```go
-func (m *Map) Del(key int64)
-```
-Del deletes a key and its value.
-
-#### func (*Map) Keys
-
-```go
-func (m *Map) Keys() chan int64
-```
-Keys returns a channel for iterating all keys.
-
-#### func (*Map) Items
-
-```go
-func (m *Map) Items() chan [2]int64
-```
-Items returns a channel for iterating all key-value pairs.
-
-
-#### func (*Map) Size
-
-```go
-func (m *Map) Size() int
-```
-Size returns size of the map.

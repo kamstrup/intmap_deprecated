@@ -1,3 +1,4 @@
+// Package intmap contains a fast hashmap implementation for maps with keys of any integer type
 package intmap
 
 import (
