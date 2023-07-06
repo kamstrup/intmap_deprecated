@@ -17,15 +17,15 @@ It interleaves keys and values in the same underlying array to improve locality.
 It is up to 3X faster than the builtin map:
 ```
 name                             time/op
-Map64Fill-8                       219ms ±21%
-IntIntMapFill-8                   204ms ±13%
-StdMapFill-8                      354ms ± 5%
-Map64Get10PercentHitRate-8        158µs ±38%
-IntIntMapGet10PercentHitRate-8    190µs ±63%
-StdMapGet10PercentHitRate-8       178µs ±32%
-Map64Get100PercentHitRate-8      4.70ms ± 5%
-IntIntMapGet100PercentHitRate-8  5.04ms ±10%
-StdMapGet100PercentHitRate-8     16.8ms ±31%
+Map64Fill-8                       201ms ± 5%
+IntIntMapFill-8                   207ms ±31%
+StdMapFill-8                      371ms ±11%
+Map64Get10PercentHitRate-8        148µs ±40%
+IntIntMapGet10PercentHitRate-8    171µs ±50%
+StdMapGet10PercentHitRate-8       171µs ±33%
+Map64Get100PercentHitRate-8      4.50ms ± 5%
+IntIntMapGet100PercentHitRate-8  4.82ms ± 6%
+StdMapGet100PercentHitRate-8     15.5ms ±32%
 ```
 
 ## Usage

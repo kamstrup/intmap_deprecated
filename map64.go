@@ -9,7 +9,7 @@ type Val64 interface {
 	~int64 | ~uint64
 }
 
-type Pair64[K, V Val64] struct {
+type Pair64[K Val64, V any] struct {
 	K K
 	V V
 }
@@ -22,7 +22,7 @@ func phiMix64(x int) int {
 }
 
 // Map64 is a map-like data-structure for 64-bit types
-type Map64[K, V Val64] struct {
+type Map64[K Val64, V any] struct {
 	data []Pair64[K, V] // key-value pairs
 	size int
 
@@ -43,14 +43,16 @@ func (m *Map64[K, V]) Get(key K) (V, bool) {
 		if m.hasZeroKey {
 			return m.zeroVal, true
 		}
-		return 0, false
+		var zero V
+		return zero, false
 	}
 
 	idx := m.startIndex(key)
 	pair := m.data[idx]
 
 	if pair.K == K(0) { // end of chain already
-		return 0, false
+		var zero V
+		return zero, false
 	}
 	if pair.K == key { // we check zero prior to this call
 		return pair.V, true
@@ -60,7 +62,8 @@ func (m *Map64[K, V]) Get(key K) (V, bool) {
 		idx = m.nextIndex(idx)
 		pair = m.data[idx]
 		if pair.K == K(0) {
-			return 0, false
+			var zero V
+			return zero, false
 		}
 		if pair.K == key {
 			return pair.V, true
