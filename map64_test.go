@@ -37,7 +37,7 @@ func TestMap64(t *testing.T) {
 		},
 	}
 
-	runTest := func(t *testing.T, m *Map64[int64], vals pairs) {
+	runTest := func(t *testing.T, m *Map64[int64, int64], vals pairs) {
 		for i, pair := range vals {
 			m.Put(pair[0], pair[1])
 			if sz := m.Len(); sz != i+1 {
@@ -58,11 +58,11 @@ func TestMap64(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("zero_cap", func(t *testing.T) {
-				m := New64[int64](0)
+				m := New64[int64, int64](0)
 				runTest(t, m, tc.vals)
 			})
 			t.Run("full_cap", func(t *testing.T) {
-				m := New64[int64](len(tc.vals))
+				m := New64[int64, int64](len(tc.vals))
 				runTest(t, m, tc.vals)
 			})
 		})

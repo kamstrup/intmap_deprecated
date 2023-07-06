@@ -1,13 +1,17 @@
 package intintmap
 
 import (
-	"fmt"
 	"math"
 )
 
 // Val64 is a type constraint for values that are guaranteed to be 64 bits wide.
 type Val64 interface {
 	~int64 | ~uint64
+}
+
+type Pair64[K, V Val64] struct {
+	K K
+	V V
 }
 
 const fillFactor64 = 0.7
@@ -18,24 +22,24 @@ func phiMix64(x int) int {
 }
 
 // Map64 is a map-like data-structure for 64-bit types
-type Map64[T Val64] struct {
-	data [][2]T // key-value pairs
+type Map64[K, V Val64] struct {
+	data []Pair64[K, V] // key-value pairs
 	size int
 
-	zeroVal    T    // value of 'zero' key
+	zeroVal    V    // value of 'zero' key
 	hasZeroKey bool // do we have 'zero' key in the map?
 }
 
 // New64 ...
-func New64[T Val64](capacity int) *Map64[T] {
-	return &Map64[T]{
-		data: make([][2]T, arraySize(capacity, fillFactor64)),
+func New64[K, V Val64](capacity int) *Map64[K, V] {
+	return &Map64[K, V]{
+		data: make([]Pair64[K, V], arraySize(capacity, fillFactor64)),
 	}
 }
 
 // Get returns the value if the key is found.
-func (m *Map64[T]) Get(key T) (T, bool) {
-	if key == T(0) {
+func (m *Map64[K, V]) Get(key K) (V, bool) {
+	if key == K(0) {
 		if m.hasZeroKey {
 			return m.zeroVal, true
 		}
@@ -45,29 +49,28 @@ func (m *Map64[T]) Get(key T) (T, bool) {
 	idx := m.startIndex(key)
 	pair := m.data[idx]
 
-	if pair[0] == T(0) { // end of chain already
+	if pair.K == K(0) { // end of chain already
 		return 0, false
 	}
-	if pair[0] == key { // we check zero prior to this call
-		return pair[1], true
+	if pair.K == key { // we check zero prior to this call
+		return pair.V, true
 	}
 
 	for {
 		idx = m.nextIndex(idx)
 		pair = m.data[idx]
-		if pair[0] == T(0) {
+		if pair.K == K(0) {
 			return 0, false
 		}
-		if pair[0] == key {
-			return pair[1], true
+		if pair.K == key {
+			return pair.V, true
 		}
 	}
 }
 
 // Put adds or updates key with value val.
-func (m *Map64[T]) Put(key, val T) {
-	fmt.Println("SZTH", m.size, m.sizeThreshold())
-	if key == T(0) {
+func (m *Map64[K, V]) Put(key K, val V) {
+	if key == K(0) {
 		if !m.hasZeroKey {
 			m.size++
 		}
@@ -79,17 +82,17 @@ func (m *Map64[T]) Put(key, val T) {
 	idx := m.startIndex(key)
 	pair := &m.data[idx]
 
-	if pair[0] == T(0) { // end of chain already
-		pair[0] = key
-		pair[1] = val
+	if pair.K == K(0) { // end of chain already
+		pair.K = key
+		pair.V = val
 		if m.size >= m.sizeThreshold() {
 			m.rehash()
 		} else {
 			m.size++
 		}
 		return
-	} else if pair[0] == key { // overwrite existing value
-		pair[1] = val
+	} else if pair.K == key { // overwrite existing value
+		pair.V = val
 		return
 	}
 
@@ -98,26 +101,25 @@ func (m *Map64[T]) Put(key, val T) {
 		idx = m.nextIndex(idx)
 		pair = &m.data[idx]
 
-		if pair[0] == T(0) {
-			pair[0] = key
-			pair[1] = val
+		if pair.K == K(0) {
+			pair.K = key
+			pair.V = val
 			if m.size >= m.sizeThreshold() {
 				m.rehash()
 			} else {
 				m.size++
 			}
 			return
-		} else if pair[0] == key {
-			pair[1] = val
+		} else if pair.K == key {
+			pair.V = val
 			return
 		}
 	}
-
 }
 
-func (m *Map64[T]) rehash() {
+func (m *Map64[K, V]) rehash() {
 	oldData := m.data
-	m.data = make([][2]T, 2*len(m.data))
+	m.data = make([]Pair64[K, V], 2*len(m.data))
 
 	// reset size
 	if m.hasZeroKey {
@@ -127,25 +129,25 @@ func (m *Map64[T]) rehash() {
 	}
 
 	for _, p := range oldData {
-		if p[0] != T(0) {
-			m.Put(p[0], p[1])
+		if p.K != K(0) {
+			m.Put(p.K, p.V)
 		}
 	}
 }
 
 // Len returns the number of elements in the map.
-func (m *Map64[T]) Len() int {
+func (m *Map64[K, V]) Len() int {
 	return m.size
 }
 
-func (m *Map64[T]) sizeThreshold() int {
+func (m *Map64[K, V]) sizeThreshold() int {
 	return int(math.Floor(float64(len(m.data)) * fillFactor64))
 }
 
-func (m *Map64[T]) startIndex(key T) int {
+func (m *Map64[K, V]) startIndex(key K) int {
 	return phiMix64(int(key)) & (len(m.data) - 1)
 }
 
-func (m *Map64[T]) nextIndex(idx int) int {
+func (m *Map64[K, V]) nextIndex(idx int) int {
 	return (idx + 1) & (len(m.data) - 1)
 }
